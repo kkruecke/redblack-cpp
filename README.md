@@ -19,3 +19,5 @@
 1. In [C\#](http://www.jot.fm/issues/issue_2005_03/column6/)
 2. In [C++ using shared_ptr](http://bartoszmilewski.com/2013/11/25/functional-data-structures-in-c-trees/)
 3. [C++ port of Sedgewick's left leaning red black trees](http://www.teachsolaisgames.com/articles/balanced_left_leaning.html)
+4. [Red Black Tree (RB-Tree) Using C++](http://www.coders-hub.com/2015/07/red-black-tree-rb-tree-using-c.html#.WOEj20cpD0p)
+5. In [C++ using fixed key and value type](https://github.com/csilva25/Red_Black_Tree)
