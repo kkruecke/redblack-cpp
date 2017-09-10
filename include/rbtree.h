@@ -1,7 +1,6 @@
 #ifndef _rb_tree_23423590
 #define _rb_tree_23423590
 
-// sources: github, bookmarks, stl source code.
 
 template<class Key, class Value> 
 class redblack_tree {
@@ -56,7 +55,9 @@ template<typename Key, typename Value> class tree234 {
        friend class rbtree<Key, Value>;             
 
         KeyValue key_value;
+
         bool is_red; // red/black flag
+
         Node *parent; /* parent is only used for navigation of the tree. It does not own the memory */
 
         std::unique_ptr<Node> left; 
@@ -70,8 +71,6 @@ template<typename Key, typename Value> class tree234 {
  
         constexpr const Node234 *getParent() const noexcept;
   
-        // method to help in debugging
-        void printKeys(std::ostream&);
 
         constexpr Key key() { return key_value.key(); } 
         constexpr const Key& key() const { return key_value.key(); } 
@@ -100,4 +99,6 @@ template<typename Key, typename Value> class tree234 {
    public:
 
 };
+
+template<class Key, class Value> inline rbtree<Key, Value>::Node::Node(Key key, const Value& value, Node *parent_ptr=nullptr) noexcept : key_value{ key, value}, parent{parent_ptr}, left{nullptr}, right{nullptr}
 #endif
