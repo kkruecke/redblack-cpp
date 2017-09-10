@@ -7,10 +7,9 @@
 #include <initializer_list>
 #include <queue>
 
-// fwd declarations
-template<class Key, class Value> class rbtree;
+
+template<class Key, class Value> class rbtree;        // Fwd declarations
 template<typename Key, typename Value> class Node; 
-template<typename Key, typename Value> union KeyValue; 
 
 template<typename Key, typename Value> class rbtree {
     
@@ -54,8 +53,10 @@ template<typename Key, typename Value> class rbtree {
    };
  
    enum class child_index { left = 0, right = 1 };
+ public:
 
    class Node {
+      private:
 
        friend class rbtree<Key, Value>;             
 
@@ -74,7 +75,14 @@ template<typename Key, typename Value> class rbtree {
         std::unique_ptr<Node>& Child(child_index index) {  index == child_index::left ? left : right; }
 
         std::unique_ptr<Node>& operator[] (child_index index) {  return getChild(index); }
-  
+
+        void connectChild(child_index childNum, std::unique_ptr<Node>& child) noexcept;
+        
+        /*
+         * Removes child node (implictly using move ctor) and shifts its children to fill the gap. Returns child pointer.
+         */  
+        std::unique_ptr<Node> disconnectChild(child_index child) noexcept { return Child(child); } 
+
         explicit Node(Key small, const Value& value, Node *parent=nullptr) noexcept;
         explicit Node(const KeyValue& key_value, Node *parent=nullptr) noexcept;
         explicit Node(const Node& node, Node *parent_ptr) noexcept;
@@ -82,6 +90,7 @@ template<typename Key, typename Value> class rbtree {
  
         constexpr const Node *getParent() const noexcept { return parent; }
   
+      public: 
         constexpr Key key() { return key_value.key(); } 
         constexpr Key& key() const { return key_value.key(); } 
 
@@ -97,14 +106,6 @@ template<typename Key, typename Value> class rbtree {
         { 
            return node.print(ostr);
         }
- 
-        void connectChild(child_index childNum, std::unique_ptr<Node>& child) noexcept;
-        
-        /*
-         * Removes child node (implictly using move ctor) and shifts its children to fill the gap. Returns child pointer.
-         */  
-        std::unique_ptr<Node> disconnectChild(child_index child) noexcept { return Child(child); } 
- 
    };
    
  private:
@@ -151,7 +152,7 @@ template<typename Key, typename Value> class rbtree {
 
     Value& operator[](Key key);
 
-    void insert(Key key, const Value& value) noexcept;
+    const Node *insert(Key key, const Value& value) noexcept;
 
     void remove(Key key) noexcept;
 
@@ -185,6 +186,7 @@ template<class Key, class Value> rbtree<Key, Value>::Node::Node(Node&& node) noe
 
 template<class Key, class Value> void rbtree<Key, Value>::Node::connectChild(typename rbtree<Key, Value>::child_index child, std::unique_ptr<typename rbtree<Key, Value>::Node>& node_ptr) noexcept 
 {
+  // TODO: Should this move the current child left or right, as appropriate?
   Child(child) = std::move(node_ptr);
 
   if (child != nullptr) {
@@ -192,9 +194,7 @@ template<class Key, class Value> void rbtree<Key, Value>::Node::connectChild(typ
       child->parent = this;
   }
 }
-/*
- Functor must define: Functor::operator()(const rbtree<Key, Value>::Node&)
- */
+
 template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoPreOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
 {
    if (current == nullptr) {
@@ -220,14 +220,6 @@ template<class Key, class Value> template<typename Functor> void rbtree<Key, Val
 
    DoPostOrderTraverse(f, current->right);
 
-   /*
-   Note: DoInOrderTraver will invoke Functor's function call operator
-    * 
-    *       Functor::operator()(const Node&) 
-    *   
-    * which must, in turn, call Node::key() and Node::value() or Node::get_nc_pair() to get access Node's private members.
-    */ 
-
    f(*current); //  f(const rbtree<Key, Value>::Node&)
 }
 
@@ -245,22 +237,11 @@ template<class Key, class Value> inline std::pair<bool, const typename rbtree<Ke
 
 template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoInOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
 {
-   if (current == nullptr) {
-
-      return;
-   }
+   if (current == nullptr)  return;
 
    DoInOrderTraverse(f, current->left);
-   /*
-   Note: DoInOrderTraver will invoke Functor's function call operator
-    * 
-    *       Functor::operator()(const Node&) 
-    *   
-    * which must, in turn, call Node::key() and Node::value() or Node::get_nc_pair() to get access Node's private members.
-    */ 
-
-   f(*current); //  f(const rbtree<Key, Value>::Node&)
-   
+  
+   f(*current); // invokes Functor::operator()(const Node&) 
 
    DoInOrderTraverse(f, current->right);
 }
