@@ -161,8 +161,8 @@ template<typename Key, typename Value> class rbtree {
     template<class Functor> void levelOrderTraverse(Functor f) const noexcept;
 
     // Depth-first traversals
-    template<typename Functor> void inOrderTraverse(Functor f) const noexcept { return DoInOrderTraverse(f, root); }
-    template<typename Functor> void preOrderTraverse(Functor f) const noexcept  { return DoPreOrderTraverse(f, root); }
+    template<typename Functor> void inOrderTraverse(Functor f)   const noexcept { return DoInOrderTraverse(f, root);   }
+    template<typename Functor> void preOrderTraverse(Functor f)  const noexcept { return DoPreOrderTraverse(f, root);  }
     template<typename Functor> void postOrderTraverse(Functor f) const noexcept { return DoPostOrderTraverse(f, root); }
 };
 
@@ -172,14 +172,11 @@ template<class Key, class Value> rbtree<Key, Value>::Node::Node(Key key, const V
 
 template<class Key, class Value> rbtree<Key, Value>::Node::Node(const KeyValue& key_value, Node *parent_ptr) noexcept : key_value{ key_value}, parent{parent_ptr}, left{nullptr}, right{nullptr}, black{true} 
 {
-
 }
 
 template<class Key, class Value> rbtree<Key, Value>::Node::Node(const Node& node, Node *parent_ptr) noexcept : key_value{ node.key_value }, parent{node.parent_ptr}, left{node.left}, right{node.right}, black{node.black}, parent{parent_ptr} 
 {
-
 }
-
 
 template<class Key, class Value> rbtree<Key, Value>::Node::Node(Node&& node) noexcept : key_value{ std::move(node.key_value) }, parent{node.parent_ptr}, left{std::move(node.left)}, right{std::move(node.right)}, black{node.black}, parent{node.parent} 
 {
@@ -195,22 +192,17 @@ template<class Key, class Value> void rbtree<Key, Value>::Node::connectChild(typ
       child->parent = this;
   }
 }
-
+/*
+ Functor must define: Functor::operator()(const rbtree<Key, Value>::Node&)
+ */
 template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoPreOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
 {
    if (current == nullptr) {
 
       return;
    }
-   /*
-   Note: DoInOrderTraver will invoke Functor's function call operator
-    * 
-    *       Functor::operator()(const Node&) 
-    *   
-    * which must, then, call Node::key() and Node::value() to get access Node's key and value members.
-    */ 
 
-   f(*current); // Functor must define: f(const rbtree<Key, Value>::Node&)
+   f(*current); 
 
    DoPreOrderTraverse(f, current->left);
 
@@ -362,6 +354,17 @@ template<class Key, class Value> rbtree<Key, Value>& rbtree<Key, Value>::operato
   root = std::move(lhs.root);
 
   return *this;
+}
+
+
+template<class Key, class Value> inline const Value& rbtree<Key, Value>& rbtree<Key, Value>::operator[](Key key) const 
+{
+  return findNode(key, root.get());
+}
+
+template<class Key, class Value> inline Value& rbtree<Key, Value>& rbtree<Key, Value>::operator[](Key key)
+{
+  return const_cast<Node*>(findNode(key, root.get()));
 }
 
 
