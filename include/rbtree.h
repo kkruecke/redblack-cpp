@@ -4,6 +4,7 @@
 #include <memory>
 #include <utility>
 #include <ostream>
+#include <exception>
 #include <initializer_list>
 #include <queue>
 
@@ -53,6 +54,7 @@ template<typename Key, typename Value> class rbtree {
    };
  
    enum class child_index { left = 0, right = 1 };
+
  public:
 
    class Node {
@@ -72,16 +74,16 @@ template<typename Key, typename Value> class rbtree {
         bool is_red() const noexcept   { return !black; }  
         bool is_black() const noexcept { return black; }
 
-        std::unique_ptr<Node>& Child(child_index index) {  index == child_index::left ? left : right; }
+        std::unique_ptr<Node>& Child(child_index index) { index == child_index::left ? left : right; }
 
-        std::unique_ptr<Node>& operator[] (child_index index) {  return getChild(index); }
+        std::unique_ptr<Node>& operator[] (child_index index) { return getChild(index); }
 
         void connectChild(child_index childNum, std::unique_ptr<Node>& child) noexcept;
         
         /*
          * Removes child node (implictly using move ctor) and shifts its children to fill the gap. Returns child pointer.
          */  
-        std::unique_ptr<Node> disconnectChild(child_index child) noexcept { return Child(child); } 
+        std::unique_ptr<Node> disconnectChild(child_index child) noexcept { return Child(child); } // TODO: Should this shift keys and child? 
 
         explicit Node(Key small, const Value& value, Node *parent=nullptr) noexcept;
         explicit Node(const KeyValue& key_value, Node *parent=nullptr) noexcept;
@@ -108,7 +110,8 @@ template<typename Key, typename Value> class rbtree {
         }
    };
    
- private:
+ private: 
+
    std::unique_ptr<Node> root;
 
     // implementations of the public depth-frist traversal methods    
@@ -119,8 +122,8 @@ template<typename Key, typename Value> class rbtree {
     template<typename Functor> void DoPreOrderTraverse(Functor f, const std::unique_ptr<Node>& root) const noexcept;
 
     void destroy_tree(std::unique_ptr<Node> &root) noexcept; 
-
-    void clone_tree(const std::unique_ptr<Node>& src_node, std::unique_ptr<Node> &dest_node, const Node *parent) noexcept; // called by copy ctor
+    
+    void clone_tree(const std::unique_ptr<Node>& src, std::unique_ptr<Node>& dest, const Node *parent) noexcept; // called by copy ctor
 
  public:
      
@@ -138,7 +141,7 @@ template<typename Key, typename Value> class rbtree {
 
     rbtree(rbtree&& lhs) noexcept : root{std::move(lhs.root)} {} // move constructor
 
-    rbtree clone_tree() const noexcept;
+    rbtree clone() const noexcept;
 
     rbtree& operator=(const rbtree&) noexcept; 
 
@@ -290,6 +293,13 @@ template<class Key, class Value> inline rbtree<Key, Value>::rbtree(const rbtree<
   clone_tree(lhs.root, root, nullptr);
 }
 
+template<class Key, class Value> inline rbtree<Key, Value> rbtree<Key, Value>::clone() const noexcept
+{
+  rbtree new_tree;
+  clone_tree(root, new_tree.root, nullptr);
+  return new_tree;
+}
+
 // Do pre-order recursive traversal, cloning the source node but using the parent that is passed in.
 template<class Key, class Value> void rbtree<Key, Value>::clone_tree(const std::unique_ptr<Node>& src, std::unique_ptr<Node>& dest, const typename rbtree<Key, Value>::Node *parent) noexcept
 {
@@ -337,15 +347,27 @@ template<class Key, class Value> rbtree<Key, Value>& rbtree<Key, Value>::operato
   return *this;
 }
 
-
-template<class Key, class Value> inline const Value& rbtree<Key, Value>& rbtree<Key, Value>::operator[](Key key) const 
+template<class Key, class Value> inline const Value& rbtree<Key, Value>::operator[](Key key) const 
 {
-  return findNode(key, root.get());
+  const Node *pnode = findNode(key, root.get());
+  
+  if (pnode == nullptr) throw std::range_error("Key not found in tree");
+  
+  else {
+      
+      pnode->value();
+  }
 }
 
-template<class Key, class Value> inline Value& rbtree<Key, Value>& rbtree<Key, Value>::operator[](Key key)
+template<class Key, class Value> inline Value& rbtree<Key, Value>::operator[](Key key)
 {
-  return const_cast<Node*>(findNode(key, root.get()));
+  const Node *pnode = findNode(key, root.get());
+  
+  if (pnode == nullptr) throw std::range_error("Key not found in tree");
+  else {
+      
+      static_cast<Node *>(pnode)->value();
+  }
 }
 
 
