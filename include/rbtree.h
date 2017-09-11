@@ -125,6 +125,8 @@ template<typename Key, typename Value> class rbtree {
     
     void clone_tree(const std::unique_ptr<Node>& src, std::unique_ptr<Node>& dest, const Node *parent) noexcept; // called by copy ctor
 
+    const Node *findNode(Key key, const Node *current) const noexcept; 
+
  public:
      
     using value_type      = std::pair<const Key, Value>; 
@@ -151,11 +153,20 @@ template<typename Key, typename Value> class rbtree {
  
     bool isEmpty() const noexcept;
 
+    /* 
+       TODO:
+       See http://en.cppreference.com/w/cpp/container/map/operator_at for how operator[] should be implemented
+     */
     const Value& operator[](Key key) const;
-
+    
     Value& operator[](Key key);
-
-    const Node *insert(Key key, const Value& value) noexcept;
+    
+    // If key does not exist, at() does not insert it unlike operator[]
+    Value& at( const Key& key );
+	
+    const Value& at( const Key& key ) const;
+   
+    void insert(Key key, const Value& value) noexcept;
 
     void remove(Key key) noexcept;
 
@@ -225,18 +236,6 @@ template<class Key, class Value> template<typename Functor> void rbtree<Key, Val
 
    f(*current); //  f(const rbtree<Key, Value>::Node&)
 }
-
-
-/*
-  return a pair, in which "first" is true, if found, and "second" points to the found node; otherwise, <false, nullptr> is returned.
- */
-template<class Key, class Value> inline std::pair<bool, const typename rbtree<Key, Value>::Node *> rbtree<Key, Value>::find(Key key) const noexcept
-{ 
-    const Node *node = findNode(key, root.get());
-
-    return std::make_pair(node != nullptr, (node != nullptr) ? node : nullptr); 
-}
-
 
 template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoInOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
 {
@@ -347,28 +346,50 @@ template<class Key, class Value> rbtree<Key, Value>& rbtree<Key, Value>::operato
   return *this;
 }
 
-template<class Key, class Value> inline const Value& rbtree<Key, Value>::operator[](Key key) const 
+template<class Key, class Value> const typename rbtree<Key, Value>::Node *rbtree<Key, Value>::findNode(Key key, const Node *current) const noexcept
 {
-  const Node *pnode = findNode(key, root.get());
-  
-  if (pnode == nullptr) throw std::range_error("Key not found in tree");
-  
-  else {
-      
-      pnode->value();
+  while (current != nullptr && key != current->key()) {
+
+      current = (key < current->key()) ? current->left.get() : current->right.get(); 
   }
+  
+  return current;
 }
 
-template<class Key, class Value> inline Value& rbtree<Key, Value>::operator[](Key key)
+/*
+  return a pair, in which "first" is true, if found, and "second" points to the found node; otherwise, <false, nullptr> is returned.
+ */
+template<class Key, class Value> inline std::pair<bool, const typename rbtree<Key, Value>::Node *> rbtree<Key, Value>::find(Key key) const noexcept
+{ 
+    const Node *node = findNode(key, root.get());
+
+    return std::make_pair(node != nullptr, (node != nullptr) ? node : nullptr); 
+}
+
+template<class Key, class Value> void rbtree<Key, Value>::insert(Key key, const Value& value) noexcept
+{
+    
+}
+
+template<class Key, class Value> void rbtree<Key, Value>::remove(Key key) noexcept
+{
+    
+}
+
+template<class Key, class Value> inline const Value& rbtree<Key, Value>::at(const Key& key) const 
 {
   const Node *pnode = findNode(key, root.get());
   
-  if (pnode == nullptr) throw std::range_error("Key not found in tree");
-  else {
-      
-      static_cast<Node *>(pnode)->value();
-  }
+  if (pnode == nullptr) throw std::out_of_range("Key not found in tree");
+  
+  return pnode->value();
 }
+
+template<class Key, class Value> inline Value& rbtree<Key, Value>::at(const Key& key)
+{
+  return this->at(key);
+}
+
 
 
 #endif
