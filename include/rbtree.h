@@ -390,6 +390,19 @@ template<class Key, class Value> inline Value& rbtree<Key, Value>::at(const Key&
   return this->at(key);
 }
 
+template<class Key, class Value> const Value& rbtree<Key, Value>::operator=(const Key& key) const 
+{
 
+}
+
+template<class Key, class Value> inline Value& rbtree<Key, Value>::operator=(const Key& key)
+{
+  if (pnode == nullptr) {
+
+      insert(key, Value{});
+  } 
+  
+  return;
+}
 
 #endif
