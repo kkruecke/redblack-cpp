@@ -157,9 +157,9 @@ template<typename Key, typename Value> class rbtree {
        TODO:
        See http://en.cppreference.com/w/cpp/container/map/operator_at for how operator[] should be implemented
      */
-    const Value& operator[](Key key) const;
+    const Value& operator[](const Key& key) const;
     
-    Value& operator[](Key key);
+    Value& operator[](const Key& key);
     
     // If key does not exist, at() does not insert it unlike operator[]
     Value& at( const Key& key );
@@ -390,12 +390,32 @@ template<class Key, class Value> inline Value& rbtree<Key, Value>::at(const Key&
   return this->at(key);
 }
 
-template<class Key, class Value> const Value& rbtree<Key, Value>::operator=(const Key& key) const 
+template<class Key, class Value> const Value& rbtree<Key, Value>::operator[](const Key& key) const 
 {
+    /* 
+     * Look for key 
+     * If found, return Value.
+     * else insert default value of Value{}
+     
+     class Route { // Define this as a nested class of rbtree<>
 
+         child_index index;
+         bool black_flag; // or Node *pfirstNodeToDoWhateverWith;
+     };
+     */
+
+     stack<Route> route;      // or stack<Route>  
+     Node *pnode;
+
+     if (findNodeHelper(key, route, pnode) ) { // finds the node, or the leaf where it should be inserted
+
+
+     } else { // insert it using pnode and route.
+         
+     } 
 }
 
-template<class Key, class Value> inline Value& rbtree<Key, Value>::operator=(const Key& key)
+template<class Key, class Value> inline Value& rbtree<Key, Value>::operator[](const Key& key)
 {
   if (pnode == nullptr) {
 
