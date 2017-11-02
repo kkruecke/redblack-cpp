@@ -22,7 +22,7 @@ template<typename Key, typename Value> class rbtree {
 
       public: 
         Node(Color c, std::shared_ptr const & lft, std::pair<const Key, Value> pr, std::shared_ptr<Node> const & rgt,
-             std::shared_ptr<Node> const & lft) : color{c}, nconstkey_pair{pr}, right{rgt}, left{lft} { }
+             std::shared_ptr<Node> const & lft) : color{c}, nconstkey_pair{pr}, right{rgt}, left{lft}, parent{nullptr} { }
 
         std::ostream& print(std::ostream& ostr) const noexcept
         {
@@ -45,6 +45,7 @@ template<typename Key, typename Value> class rbtree {
 
       private: 
         Color color;
+        Node *parent;
    
         std::pair<Key, Value>        nconstkey_pair;  // ...this eliminates constantly casting of const_cast<Key>(p.first) = some_noconst_key;
         std::pair<const Key, Value>  constkey_pair;   // but always return this member of the union.
