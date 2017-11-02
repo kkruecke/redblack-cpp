@@ -1,1 +1,0 @@
-Understand red black trees first.

@@ -15,7 +15,45 @@ template<typename Key, typename Value> class Node;
 template<typename Key, typename Value> class rbtree {
     
  private:
+    class enum Color { R, B };
 
+    class Node {
+      friend rbtree;
+
+      public: 
+        Node(Color c, std::shared_ptr const & lft, std::pair<const Key, Value> pr, std::shared_ptr<Node> const & rgt,
+             std::shared_ptr<Node> const & lft) : color{c}, nconstkey_pair{pr}, right{rgt}, left{lft} { }
+
+        std::ostream& print(std::ostream& ostr) const noexcept
+        {
+           ostr << "{" << pair().first << ',' <<  pair().second <<  "}, ";
+           return ostr;
+        }
+
+        Node(Node&& node); 
+
+        Node& operator=(const Node& lhs) noexcept;  
+        Node& operator=(Node&& lhs) noexcept; 
+
+        friend std::ostream& operator<<(std::ostream& ostr, const Node& node) { return node.print(ostr); }
+
+        constexpr Key key() { return constkey_pair.key(); } 
+        constexpr Key& key() const { return pair.key(); } 
+
+        constexpr Value& value() { return key_value.value(); } 
+        constexpr const Value& value() const { return key_value.value(); } 
+
+      private: 
+        Color color;
+   
+        std::pair<Key, Value>        nconstkey_pair;  // ...this eliminates constantly casting of const_cast<Key>(p.first) = some_noconst_key;
+        std::pair<const Key, Value>  constkey_pair;   // but always return this member of the union.
+
+        std::shared_ptr<Node> left;
+
+        std::shared_ptr<Node> right;
+    };
+/*
    union KeyValue { // A union is used to hold to two types of pairs, one of which (pair) has a non-const Key; the other has a const Key.
        friend class rbtree<Key, Value>;
    
@@ -52,8 +90,7 @@ template<typename Key, typename Value> class rbtree {
 
        friend std::ostream& operator<<(std::ostream& ostr, const KeyValue& key_value) { return key_value.print(ostr); }
    };
- 
-   enum class child_index { left = 0, right = 1 };
+*/ 
 
  public:
 

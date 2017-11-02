@@ -5,3 +5,4 @@ build/
 nbproject/
 *.pdf
 out*.txt
+*.html
