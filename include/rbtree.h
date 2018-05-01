@@ -19,9 +19,9 @@ template<typename Key, typename Value> class rbtree {
 
     class Node {
 
-      friend rbtree;
+       friend rbtree;
 
-      public: 
+     public: 
 
         Node(Color c, std::shared_ptr const & left, std::pair<const Key, Value> pr, std::shared_ptr<Node> const & right,
              std::shared_ptr<Node> const & left) : color{c}, nconstkey_pair{pr}, right{rgt}, left{lft}, parent{nullptr} { }
@@ -39,22 +39,28 @@ template<typename Key, typename Value> class rbtree {
 
         friend std::ostream& operator<<(std::ostream& ostr, const Node& node) { return node.print(ostr); }
 
-        constexpr Key key() { return constkey_pair.key(); } 
-        constexpr Key& key() const { return pair.key(); } 
+        constexpr Key& key() { return const_cast<Key&>(pair.first); } 
+        constexpr const Key& key() const { return pair.first; } 
 
-        constexpr Value& value() { return key_value.value(); } 
-        constexpr const Value& value() const { return key_value.value(); } 
+        constexpr Value& value() { return pair.second; } 
+        constexpr const Value& value() const { return pair.second; } 
 
-      private: 
+        constexpr Value& pair() { return pair; } 
+        constexpr const Value& pair() const { return pair; } 
+
+     private: 
        Color color;
 
        Node *parent;
 
+       std::pair<const Key, Value>  pair;   // but always return this member of the union.
+
+       /* Might have to use this.
        union {
-            std::pair<Key, Value>        nconstkey_pair;  // ...this eliminates constantly casting of const_cast<Key>(p.first) = some_noconst_key;
+            std::pair<Key, Value>        pair;  // ...this eliminates constantly casting of const_cast<Key>(p.first) = some_noconst_key;
             std::pair<const Key, Value>  constkey_pair;   // but always return this member of the union.
         };
-
+         */
         std::shared_ptr<Node> left;
 
         std::shared_ptr<Node> right;
