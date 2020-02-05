@@ -1,221 +1,268 @@
-#ifndef rb_tree_23423590
-#define rb_tree_23423590
+#ifndef	rbtree_H
+#define	rbtree_H
 
 #include <memory>
 #include <utility>
-#include <ostream>
-#include <exception>
-#include <initializer_list>
 #include <queue>
+#include <stack>
+#include <algorithm>
+#include <stdlib.h>
+#include <initializer_list>
+#include "value-type.h"
+#include <iostream>  
+#include <exception>
 
 
-template<class Key, class Value> class rbtree;        // Fwd declarations
-template<typename Key, typename Value> class Node; 
+template<class Key, class Value> class rbtree; // forward declarations of template classes.
 
-template<typename Key, typename Value> class rbtree {
-    
- private:
-    class enum Color {R, B};
+template<class Key, class Value> class rbtree {
 
-    class Node {
+  public:
 
-       friend rbtree;
+    // Container typedef's used by STL.
+    using key_type   = Key;
+    using mapped_type = Value;
 
-     public: 
-
-        Node(Color c, std::shared_ptr const & left, std::pair<const Key, Value> pr, std::shared_ptr<Node> const & right,
-             std::shared_ptr<Node> const & left) : color{c}, nconstkey_pair{pr}, right{rgt}, left{lft}, parent{nullptr} { }
-
-        std::ostream& print(std::ostream& ostr) const noexcept
-        {
-           ostr << "{" << pair().first << ',' <<  pair().second <<  "}, ";
-           return ostr;
-        }
-
-        Node(Node&& node); 
-
-        Node& operator=(const Node& lhs) noexcept;  
-        Node& operator=(Node&& lhs) noexcept; 
-
-        friend std::ostream& operator<<(std::ostream& ostr, const Node& node) { return node.print(ostr); }
-
-        constexpr Key& key() { return const_cast<Key&>(pair.first); } 
-        constexpr const Key& key() const { return pair.first; } 
-
-        constexpr Value& value() { return pair.second; } 
-        constexpr const Value& value() const { return pair.second; } 
-
-        constexpr Value& pair() { return pair; } 
-        constexpr const Value& pair() const { return pair; } 
-
-     private: 
-       Color color;
-
-       Node *parent;
-
-       std::pair<const Key, Value>  pair;   // but always return this member of the union.
-
-       /* Might have to use this.
-       union {
-            std::pair<Key, Value>        pair;  // ...this eliminates constantly casting of const_cast<Key>(p.first) = some_noconst_key;
-            std::pair<const Key, Value>  constkey_pair;   // but always return this member of the union.
-        };
-         */
-        std::shared_ptr<Node> left;
-
-        std::shared_ptr<Node> right;
-    };
-/*
-   union KeyValue { // A union is used to hold to two types of pairs, one of which (pair) has a non-const Key; the other has a const Key.
-       friend class rbtree<Key, Value>;
-   
-       std::pair<Key, Value>        _pair;  // ...this eliminates constantly casting of const_cast<Key>(p.first) = some_noconst_key;
-       std::pair<const Key, Value>  constkey_pair;  // but always return this member of the union.
-
-       KeyValue() {} 
-       KeyValue(Key key, const Value& value) : _pair{key, value} {}
-       
-       KeyValue(const KeyValue& lhs) : _pair{lhs._pair.first, lhs._pair.second} {}
-       
-       KeyValue(Key k, Value&& v) : _pair{k, std::move(v)} {} 
-   
-       KeyValue(KeyValue&& lhs) :  _pair{move(lhs._pair)} {}
-   
-       KeyValue& operator=(const KeyValue& lhs) noexcept;  
-       KeyValue& operator=(KeyValue&& lhs) noexcept; 
-
-       constexpr Key&  key()  { return _pair.first; }
-       constexpr const Key& key() const { return constkey_pair.first; }
-
-       constexpr Value&  value()  { return _pair.second; }
-       constexpr const Value& value() const { return constkey_pair.second; }
-
-     public:    
-       constexpr const std::pair<Key, Value>& pair() const { return _pair; }
-       constexpr std::pair<Key, Value>& pair() { return _pair; }
-        
-       std::ostream& print(std::ostream& ostr) const noexcept
-       {
-          ostr << "{" << pair().first << ',' <<  pair().second <<  "}, ";
-          return ostr;
-       }
-
-       friend std::ostream& operator<<(std::ostream& ostr, const KeyValue& key_value) { return key_value.print(ostr); }
-   };
-*/ 
-
- public:
-
-   class Node {
-      private:
-
-       friend class rbtree<Key, Value>;             
-
-        KeyValue key_value;
-
-        bool black; // red or black flag
-
-        Node *parent; /* parent is only used for navigation of the tree. It does not own the memory */
-
-        std::unique_ptr<Node> left; 
-        std::unique_ptr<Node> right; 
-
-        bool is_red() const noexcept   { return !black; }  
-        bool is_black() const noexcept { return black; }
-
-        std::unique_ptr<Node>& Child(child_index index) { index == child_index::left ? left : right; }
-
-        std::unique_ptr<Node>& operator[] (child_index index) { return getChild(index); }
-
-        void connectChild(child_index childNum, std::unique_ptr<Node>& child) noexcept;
-        
-        /*
-         * Removes child node (implictly using move ctor) and shifts its children to fill the gap. Returns child pointer.
-         */  
-        std::unique_ptr<Node> disconnectChild(child_index child) noexcept { return Child(child); } // TODO: Should this shift keys and child? 
-
-        explicit Node(Key small, const Value& value, Node *parent=nullptr) noexcept;
-        explicit Node(const KeyValue& key_value, Node *parent=nullptr) noexcept;
-        explicit Node(const Node& node, Node *parent_ptr) noexcept;
-        explicit Node(Node&& node) noexcept;
- 
-        constexpr const Node *getParent() const noexcept { return parent; }
-  
-      public: 
-        constexpr Key key() { return key_value.key(); } 
-        constexpr Key& key() const { return key_value.key(); } 
-
-        constexpr Value& value() { return key_value.value(); } 
-        constexpr const Value& value() const { return key_value.value(); } 
-
-        std::ostream& print(std::ostream& ostr) const noexcept 
-        {
-           return key_value.print(ostr);
-        }  
-   
-        friend std::ostream& operator<<(std::ostream& ostr, const Node& node)
-        { 
-           return node.print(ostr);
-        }
-   };
-   
- private: 
-
-   std::unique_ptr<Node> root;
-
-    // implementations of the public depth-frist traversal methods    
-    template<typename Functor> void DoInOrderTraverse(Functor f, const std::unique_ptr<Node>& root) const noexcept;
-
-    template<typename Functor> void DoPostOrderTraverse(Functor f,  const std::unique_ptr<Node>& root) const noexcept;
-
-    template<typename Functor> void DoPreOrderTraverse(Functor f, const std::unique_ptr<Node>& root) const noexcept;
-
-    void destroy_tree(std::unique_ptr<Node> &root) noexcept; 
-    
-    void clone_tree(const std::unique_ptr<Node>& src, std::unique_ptr<Node>& dest, const Node *parent) noexcept; // called by copy ctor
-
-    const Node *findNode(Key key, const Node *current) const noexcept; 
-
- public:
-     
-    using value_type      = std::pair<const Key, Value>; 
+    using value_type = __value_type<Key, Value>::value_type;// = std::pair<const Key, Value>;  
     using difference_type = long int;
     using pointer         = value_type*; 
     using reference       = value_type&; 
-    using node_type       = Node; 
 
-    rbtree() : root{nullptr} {}
+  private:
+   /*
+    * The rbtree consists of a tree Nodes managed by std::unique_ptr<Node>, and each Node contains left and right children and 
+      a pair<const Key, Value>. The pair is declared inside a wrapper class __value_type whose assignment operators provide
+      greater convenience. 
+    */ 
+   class Node {
+
+        friend class rbtree<Key, Value>;    
+
+    public:   
+        
+        Node()
+        {
+            parent = nullptr;
+        }
+     
+        // The copy constructor 
+        Node(const Node& lhs);
+        
+        /* 
+          Do we need constructor or the one below it?
+
+        Node(const Key& key, const Value& value, Node *parent_in=nullptr) : __vt{key, value}, parent{parent_in}
+        {
+           left = std::make_unique<Node>();    
+           right = std::make_unique<Node>(); 
+
+           left->parent = right->parent = this;
+        }
+        */
+        
+        Node(const Key& key, const Value& value, Node *parent_in=nullptr) : __vt{key, value}, parent{parent_in}, left{nullptr}, right{nullptr} 
+        {
+        }
+      
+        Node& operator=(const Node&) noexcept; 
+
+        Node(Node&&); // ...but we allow move assignment and move construction.
+
+       ~Node() = default; // members __vt, __left and right are all implicitly deleted. 
+
+        std::ostream& print(std::ostream& ostr) const noexcept; 
+
+        friend std::ostream& operator<<(std::ostream& ostr, const Node& node) noexcept
+        { 
+            node.print(ostr);
+            return ostr;
+        }
+        
+        Node& operator=(Node&&) noexcept;
+        
+        constexpr bool isLeaf() const noexcept { return (left == nullptr && right == nullptr) ? true : false; } 
+
+    private:
+
+        __value_type<Key, Value> __vt;  // Convenience wrapper for std::pair<const Key, Value>
+                                        // Has necessary constructors and assignment operators.
+                              
+        std::unique_ptr<Node> left;
+        std::unique_ptr<Node> right;
+
+        Node *parent;
+
+        constexpr const Key& key() const noexcept 
+        {
+           return __vt.__get_value().first; //  'template<typename _Key, typename _Value> struct __value_type' does not have members first and second.
+        } 
+
+        constexpr const Value& value() const noexcept 
+        { 
+           return __vt.__get_value().second; 
+        }  
+        
+        constexpr Value& value() noexcept 
+        { 
+           return __vt.__get_value().second; 
+        }
+
+    }; 
+  
+  class NodeLevelOrderPrinter {
+
+      std::ostream& ostr;
+      int current_level;
+      int height;
+
+      void display_level(std::ostream& ostr, int level) const noexcept
+      {
+        ostr << "\n\n" << "current_level = " <<  current_level << ' '; 
+           
+        // Provide some basic spacing to tree appearance.
+        std::size_t num = height - current_level + 1;
+        
+        std::string str( num, ' ');
+        
+        ostr << str; 
+      }
+
+      std::ostream& (Node::*pmf)(std::ostream&) const noexcept;
+
+     public: 
+        
+     NodeLevelOrderPrinter (int hght,  std::ostream& (Node::*pmf_)(std::ostream&) const noexcept, std::ostream& ostr_in): height{hght}, ostr{ostr_in}, current_level{0}, pmf{pmf_} {}
+
+     NodeLevelOrderPrinter (const NodeLevelOrderPrinter& lhs): height{lhs.height}, ostr{lhs.ostr}, current_level{lhs.current_level}, pmf{lhs.pmf} {}
+
+     void operator ()(const Node *pnode, int level)
+     { 
+         // Did current_level change?
+         if (current_level != level) { 
+        
+             current_level = level;
+        
+             display_level(ostr, level);       
+         }
+
+         (pnode->*pmf)(std::cout); // print Node.
+
+         std::cout << ' ' << std::flush;
+     }
+  };
+
+  private: 
+
+    std::unique_ptr<Node> root; 
+
+    int size;
+
+    template<typename Functor> void DoInOrderTraverse(Functor f, const std::unique_ptr<Node>& root) const noexcept;
+    template<typename Functor> void DoPostOrderTraverse(Functor f,  const std::unique_ptr<Node>& root) const noexcept;
+    template<typename Functor> void DoPreOrderTraverse(Functor f, const std::unique_ptr<Node>& root) const noexcept;
+
+    void create_root(const key_type&, const mapped_type&) noexcept;
+ 
+    const Node *min(const Node *current) const noexcept;
+   
+    const Node *getSuccessor(const Node *current) const noexcept;
+   
+    const std::unique_ptr<Node>& get_unique_ptr(const Node *pnode) const noexcept;
+
+    std::pair<bool, const Node *> findNode(const key_type& key, const Node *current) const noexcept; 
+
+    int  height(const Node *pnode) const noexcept;
+    int  depth(const Node *pnode) const noexcept;
+    bool isBalanced(const Node *pnode) const noexcept;
+
+    void move(rbtree<Key, Value>&& lhs) noexcept;
+
+  public:
+
+    // One other stl typedef.
+    using node_type       = Node; 
+  
+    rbtree() noexcept : root{nullptr}, size{0} { }
+
+   ~rbtree() noexcept = default; // does post-order like member destruction
 
     rbtree(std::initializer_list<value_type> list) noexcept; 
 
-    explicit rbtree(const rbtree&) noexcept; 
+    rbtree(const rbtree&) noexcept; 
 
-    rbtree(rbtree&& lhs) noexcept : root{std::move(lhs.root)} {} // move constructor
-
-    rbtree clone() const noexcept;
+    rbtree(rbtree&& lhs) noexcept
+    {
+        move(std::move(lhs)); 
+    }
 
     rbtree& operator=(const rbtree&) noexcept; 
 
-    rbtree& operator=(rbtree&&) noexcept; // move assignment
+    rbtree& operator=(rbtree&&) noexcept;
 
-    int getHeight() const noexcept;
- 
+    rbtree<Key, Value> clone() const noexcept; 
+
     bool isEmpty() const noexcept;
 
-    /* 
-       TODO:
-       See http://en.cppreference.com/w/cpp/container/map/operator_at for how operator[] should be implemented
-     */
-    const Value& operator[](const Key& key) const;
+    void test_invariant() const noexcept;
+
+    const Value& operator[](Key key) const;
+
+    Value& operator[](Key key);
+
+/*
+
+Some of the std::map insert methods:
+
+    template< class InputIt >
+    void insert( InputIt first, InputIt last );
     
-    Value& operator[](const Key& key);
+    void insert( std::initializer_list<value_type> ilist );
     
-    // If key does not exist, at() does not insert it unlike operator[]
-    Value& at( const Key& key );
-	
-    const Value& at( const Key& key ) const;
-   
-    void insert(Key key, const Value& value) noexcept;
+    insert_return_type insert(node_type&& nh);
+    
+    iterator insert(const_iterator hint, node_type&& nh);
+    
+    void insert( std::initializer_list<value_type> ilist );
+    
+    insert_return_type insert(node_type&& nh);
+    
+    iterator insert(const_iterator hint, node_type&& nh);
+
+    template< class InputIt >
+    void insert( InputIt first, InputIt last );
+*/
+
+    //++std::pair<iterator,bool> insert( const value_type& value );
+    //++std::pair<iterator,bool> insert( value_type&& value );
+    
+/*
+ From std::map insert_or_assign methods
+
+    template <class M>
+    pair<iterator, bool> insert_or_assign(const key_type& k, M&& obj);
+
+    template <class M>
+    pair<iterator, bool> insert_or_assign(key_type&& k, M&& obj);
+
+    template <class M>
+    iterator insert_or_assign(const_iterator hint, const key_type& k, M&& obj);
+
+    template <class M>
+    iterator insert_or_assign(const_iterator hint, key_type&& k, M&& obj);
+
+
+*/
+    void insert(std::initializer_list<value_type> list) noexcept; 
+
+    void insert_or_assign(const key_type& key, const mapped_type& value) noexcept; // TODO: std::pair<cont Key, Value>
+  
+    // TODO: Add methods that take a pair<const Key, Value>
+
+    Value& operator[](const Key& key) noexcept; 
+
+    const Value& operator[](const Key& key) const noexcept; 
+
+    // TODO: Add emplace() methods and other methods like std::map have, like insert_or_assign().
 
     void remove(Key key) noexcept;
 
@@ -225,76 +272,117 @@ template<typename Key, typename Value> class rbtree {
     template<class Functor> void levelOrderTraverse(Functor f) const noexcept;
 
     // Depth-first traversals
-    template<typename Functor> void inOrderTraverse(Functor f)   const noexcept { return DoInOrderTraverse(f, root);   }
-    template<typename Functor> void preOrderTraverse(Functor f)  const noexcept { return DoPreOrderTraverse(f, root);  }
+    template<typename Functor> void inOrderTraverse(Functor f) const noexcept { return DoInOrderTraverse(f, root); }
+    template<typename Functor> void preOrderTraverse(Functor f) const noexcept  { return DoPreOrderTraverse(f, root); }
     template<typename Functor> void postOrderTraverse(Functor f) const noexcept { return DoPostOrderTraverse(f, root); }
+
+    void  printlevelOrder(std::ostream& ostr) const noexcept;
+
+    int height() const noexcept;
+    bool isBalanced() const noexcept;
+
+    friend std::ostream& operator<<(std::ostream& ostr, const rbtree<Key, Value>& tree) noexcept
+    {
+       tree.printlevelOrder(ostr);  
+       return ostr;
+    }
 };
 
-template<class Key, class Value> rbtree<Key, Value>::Node::Node(Key key, const Value& value, Node *parent_ptr) noexcept : key_value(key, value), parent{parent_ptr}, left{nullptr}, right{nullptr}, black{true} 
+template<class Key, class Value>
+rbtree<Key, Value>::Node::Node(const Node& lhs) : __vt{lhs.__vt}, left{nullptr}, right{nullptr}
 {
-}
+   if (lhs.parent == nullptr) // If lhs is the root, then set parent to nullptr.
+       parent = nullptr;
 
-template<class Key, class Value> rbtree<Key, Value>::Node::Node(const KeyValue& key_value, Node *parent_ptr) noexcept : key_value{ key_value}, parent{parent_ptr}, left{nullptr}, right{nullptr}, black{true} 
-{
-}
+   // The make_unique<Node> calls will in turn recursively invoke the constructor again, resulting in the entire tree rooted at
+   // lhs being copied.
+   if (lhs.left  != nullptr) { 
 
-template<class Key, class Value> rbtree<Key, Value>::Node::Node(const Node& node, Node *parent_ptr) noexcept : key_value{ node.key_value }, parent{node.parent_ptr}, left{node.left}, right{node.right}, black{node.black}, parent{parent_ptr} 
-{
-}
-
-template<class Key, class Value> rbtree<Key, Value>::Node::Node(Node&& node) noexcept : key_value{ std::move(node.key_value) }, parent{node.parent_ptr}, left{std::move(node.left)}, right{std::move(node.right)}, black{node.black}, parent{node.parent} 
-{
-
-}
-
-template<class Key, class Value> void rbtree<Key, Value>::Node::connectChild(typename rbtree<Key, Value>::child_index child, std::unique_ptr<typename rbtree<Key, Value>::Node>& node_ptr) noexcept 
-{
-  // TODO: Should this move the current child left or right, as appropriate?
-  Child(child) = std::move(node_ptr);
-
-  if (child != nullptr) {
-
-      child->parent = this;
-  }
-}
-
-template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoPreOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
-{
-   if (current == nullptr) {
-
-      return;
+       left = std::make_unique<Node>(*lhs.left);    
+       left->parent = this;
    }
+   
+   if (lhs.right != nullptr) {
 
-   f(*current); 
-
-   DoPreOrderTraverse(f, current->left);
-
-   DoPreOrderTraverse(f, current->right);
-}
-
-template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoPostOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
-{
-   if (current == nullptr) {
-
-      return;
+       right = std::make_unique<Node>(*lhs.right); 
+       right->parent = this;
    }
-
-   DoPostOrderTraverse(f, current->left);
-
-   DoPostOrderTraverse(f, current->right);
-
-   f(*current); //  f(const rbtree<Key, Value>::Node&)
 }
 
-template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoInOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
+template<class Key, class Value> typename rbtree<Key, Value>::Node&  rbtree<Key, Value>::Node::operator=(const typename rbtree<Key, Value>::Node& lhs) noexcept
 {
-   if (current == nullptr)  return;
+   if (&lhs == this) return *this;
 
-   DoInOrderTraverse(f, current->left);
+   __vt = lhs.__vt;
+
+   if (lhs.parent == nullptr) // If we are copying a root pointer, then set parent.
+       parent = nullptr;
+
+   // The make_unique<Node> calls below results in the entire tree rooted at lhs being copied.
+   if (lhs.left  != nullptr) { 
+
+       left = std::make_unique<Node>(*lhs.left);    
+       left->parent = this;
+   }
+   
+   if (lhs.right != nullptr) {
+
+       right = std::make_unique<Node>(*lhs.right); 
+       right->parent = this;
+   }
   
-   f(*current); // invokes Functor::operator()(const Node&) 
+   return *this;
+}
 
-   DoInOrderTraverse(f, current->right);
+template<class Key, class Value> inline rbtree<Key, Value>::rbtree(std::initializer_list<value_type> list)  noexcept : rbtree()
+{
+   insert(list);
+}
+
+template<class Key, class Value> inline rbtree<Key, Value>::rbtree(const rbtree<Key, Value>& lhs) noexcept
+{ 
+   root = std::make_unique<Node>(*lhs.root); 
+   size = lhs.size;
+}
+
+template<class Key, class Value> inline void rbtree<Key, Value>::move(rbtree<Key, Value>&& lhs) noexcept  
+{
+  root = std::move(lhs.root); 
+
+  size = lhs.size;
+
+  lhs.size = 0;
+}
+
+
+template<class Key, class Value> rbtree<Key, Value>& rbtree<Key, Value>::operator=(const rbtree<Key, Value>& lhs) noexcept
+{
+  if (this == &lhs)  {
+      
+      return *this;
+  }
+
+  // This will implicitly delete all Nodes in 'this', and set root to a duplicate tree of Nodes.
+  root = std::make_unique<Node>(*lhs.root); 
+ 
+  size = lhs.size; 
+
+  return *this;
+}
+
+template<class Key, class Value> rbtree<Key, Value>& rbtree<Key, Value>::operator=(rbtree<Key, Value>&& lhs) noexcept
+{
+  if (this == &lhs) return *this;
+  
+  move(std::move(lhs)); 
+
+  return *this;
+}
+
+template<class Key, class Value> inline std::ostream& rbtree<Key, Value>::Node::print(std::ostream& ostr) const noexcept
+{
+  ostr << "[ " << key() << ", " << value() << "] " << std::flush;  
+  return ostr; 
 }
 
 // Breadth-first traversal. Useful for display the tree (with a functor that knows how to pad with spaces based on level).
@@ -314,164 +402,351 @@ template<class Key, class Value> template<typename Functor> void rbtree<Key, Val
 
    while (!queue.empty()) {
 
+       /*
         std::pair<const Node *, int> pair_ = queue.front();
-
         const Node *current = pair_.first;
+        int current_level = pair_.second;
+       */
 
-        int current_tree_level = pair_.second;
+        auto[current, current_level] = queue.front(); // C++17 unpacking.
 
-        f(*current, current_tree_level);  
+        f(current, current_level);  
         
         if (current != nullptr && !current->isLeaf()) {
     
-            queue.push(std::make_pair(current->left.get(), current_tree_level + 1));  
-            queue.push(std::make_pair(current->right.get(), current_tree_level + 1));  
+            queue.push(std::make_pair(current->left.get(), current_level + 1));  
+            queue.push(std::make_pair(current->right.get(), current_level + 1));  
         }
 
         queue.pop(); 
    }
 }
 
-
-template<class Key, class Value> inline rbtree<Key, Value>::rbtree(const rbtree<Key, Value>& lhs) noexcept 
-{ 
-  destroy_tree(); // free all the nodes of the current tree 
-
-  // Traverse in pre-order cloning each node in lhs.
-  clone_tree(lhs.root, root, nullptr);
-}
-
-template<class Key, class Value> inline rbtree<Key, Value> rbtree<Key, Value>::clone() const noexcept
+template<typename Key, typename Value> inline void  rbtree<Key, Value>::printlevelOrder(std::ostream& ostr) const noexcept
 {
-  rbtree new_tree;
-  clone_tree(root, new_tree.root, nullptr);
-  return new_tree;
-}
-
-// Do pre-order recursive traversal, cloning the source node but using the parent that is passed in.
-template<class Key, class Value> void rbtree<Key, Value>::clone_tree(const std::unique_ptr<Node>& src, std::unique_ptr<Node>& dest, const typename rbtree<Key, Value>::Node *parent) noexcept
-{
-  if (src == nullptr) return;
+  NodeLevelOrderPrinter tree_printer(height(), &Node::print, ostr);  
   
-  dest = std::make_unique<Node>(src, parent);
+  levelOrderTraverse(tree_printer);
   
-  clone_tree(src->left, dest->left, dest.get());
-  clone_tree(src->right, dest->right, dest.get());
+  ostr << std::flush;
 }
- 
 /*
- * destroy_tree(unique_ptr<Node>&) does a post order tree traversal, using recursion and deleting nodes as they are visited. 
+template<class Key, class Value> rbtree<Key, Value>::Node::Node(Key key, const Value& value, Node *ptr2parent)  : parent{ptr2parent}, left{nullptr}, right{nullptr}, \
+        __vt{key, value}
+{
+}
+*/
+template<class Key, class Value> inline rbtree<Key, Value>::Node::Node(Node&& node) : __vt{std::move(node.__vt)}, left{std::move(node.left)}, right{std::move(node.right)}, parent{node.ptr2parent} 
+{
+}
+
+template<class Key, class Value> inline bool rbtree<Key, Value>::isEmpty() const noexcept
+{
+  return root == nullptr ? true : false;
+}
+
+/*
+ * Input:  pnode is a raw Node *.
+ * Return: A reference to the unique_ptr that manages pnode.
  */
-template<class Key, class Value> void rbtree<Key, Value>::destroy_tree(std::unique_ptr<Node> &current) noexcept 
+template<class Key, class Value> const std::unique_ptr<typename rbtree<Key, Value>::Node>& rbtree<Key, Value>::get_unique_ptr(const Node *pnode) const noexcept
 {
-  if (current == nullptr) return;
-  
-  destroy_tree(current->left);
-  destroy_tree(current->right);
+  if (pnode->parent == nullptr) { // Is pnode the root? 
 
-  current.reset(); // deletes the underlying raw pointer. 
+     return root; 
+
+  } else {
+
+     return (pnode->parent->left.get() == pnode) ? pnode->parent->left : pnode->parent->right;  
+  }
 }
 
-template<class Key, class Value> rbtree<Key, Value>& rbtree<Key, Value>::operator=(const rbtree<Key, Value>& lhs) noexcept
+template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoInOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
 {
-  if (this == &lhs) return *this;
-  
-  destroy_tree(); // free all the nodes of the current tree 
+   if (current == nullptr) {
 
-  // Traverse in pre-order cloning each node in lhs.
-  clone_tree(lhs.root, root, nullptr);
+      return;
+   }
 
-  return *this;
+   DoInOrderTraverse(f, current->left);
+
+   f(current->__get_pair()); 
+
+   DoInOrderTraverse(f, current->right);
 }
 
-template<class Key, class Value> rbtree<Key, Value>& rbtree<Key, Value>::operator=(rbtree<Key, Value>&& lhs) noexcept
+template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoPreOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
 {
-  if (this == &lhs) return *this;
-  
-  destroy_tree(); // free all the nodes of the current tree 
+   if (current == nullptr) {
 
-  root = std::move(lhs.root);
+      return;
+   }
 
-  return *this;
+   f(current->__get_pair()); 
+
+   DoPreOrderTraverse(f, current->left);
+
+   DoPreOrderTraverse(f, current->right);
 }
 
-template<class Key, class Value> const typename rbtree<Key, Value>::Node *rbtree<Key, Value>::findNode(Key key, const Node *current) const noexcept
+template<class Key, class Value> template<typename Functor> void rbtree<Key, Value>::DoPostOrderTraverse(Functor f, const std::unique_ptr<Node>& current) const noexcept
 {
-  while (current != nullptr && key != current->key()) {
+   if (current == nullptr) {
+
+      return;
+   }
+
+   DoPostOrderTraverse(f, current->left);
+
+   DoPostOrderTraverse(f, current->right);
+
+   f(current->__get_pair()); 
+}
+
+/*
+  return a std::pair<bool, const Node *>: pair.first  is true, if found; and pair.second points to the found node; otherwise, <false, nullptr> is returned.
+ */
+template<class Key, class Value> inline std::pair<bool, const typename rbtree<Key, Value>::Node *> rbtree<Key, Value>::find(Key key) const noexcept
+{ 
+    auto [bBool, pnode] = findNode(key, root.get());
+
+    return {pnode != nullptr, (pnode != nullptr) ? pnode : nullptr}; 
+}
+/*
+ * Returns pair<bool, const Node *>, where
+ * If key found, {true, Node * of found node}
+ * If key not node found, {false, Node * of leadf node where insert should occur}
+*/
+template<class Key, class Value> std::pair<bool, const typename rbtree<Key, Value>::Node *> rbtree<Key, Value>::findNode(const key_type& key, const typename rbtree<Key, Value>::Node *current) const noexcept
+{
+  const Node *parent = nullptr;
+
+  while (current != nullptr) {
+
+     if (current->key() ==  key) return {true, current}; 
+
+      parent = current;
 
       current = (key < current->key()) ? current->left.get() : current->right.get(); 
   }
   
-  return current;
+  return {false, parent}; 
+}
+
+template<class Key, class Value> const typename rbtree<Key, Value>::Node *rbtree<Key, Value>::min(const typename rbtree<Key, Value>::Node *current) const noexcept
+{
+  while (current->left != nullptr) {
+
+       current = current->left;
+  } 
+
+  return current;  
 }
 
 /*
-  return a pair, in which "first" is true, if found, and "second" points to the found node; otherwise, <false, nullptr> is returned.
+  If the right subtree of node current is nonempty, then the successor of x is just the left-most node in the right subtree, which is found by calling min(current.right.get()). 
+  On the other hand, if the right subtree of node x is empty and x has a successor y, then y is the lowest ancestor of x whose left child is also an ancestor of x.
+  Returns: The pointer to successor node or nullptr if there is no successor (because the input node was the largest in the tree)
+ 
  */
-template<class Key, class Value> inline std::pair<bool, const typename rbtree<Key, Value>::Node *> rbtree<Key, Value>::find(Key key) const noexcept
-{ 
-    const Node *node = findNode(key, root.get());
-
-    return std::make_pair(node != nullptr, (node != nullptr) ? node : nullptr); 
-}
-
-template<class Key, class Value> void rbtree<Key, Value>::insert(Key key, const Value& value) noexcept
+template<class Key, class Value>  const typename rbtree<Key, Value>::Node* rbtree<Key, Value>::getSuccessor(const typename rbtree<Key, Value>::Node *current) const noexcept
 {
-    
+  if (current->right != nullptr) return min(current->right);
+
+  Node *ancestor = current->parent;
+
+  // find the smallest ancestor of current whose left child is also an ancestor of current (by ascending the ancestor chain until we find the first ancestor that is a left child).
+  while(ancestor != nullptr && current == ancestor->right.get()) {
+
+       current = ancestor;
+
+       ancestor = ancestor->parent;
+  }
+  return ancestor;
 }
 
+template<class Key, class Value> void rbtree<Key, Value>::insert(std::initializer_list<value_type> list) noexcept 
+{
+   for (const auto& [key, value] : list) 
+
+      insert_or_assign(key, value);
+}
+
+template<class Key, class Value> inline void rbtree<Key, Value>::create_root(const key_type& key, const mapped_type& value) noexcept
+{
+    root = std::make_unique<Node>(key, value);
+    ++size;    
+}
+/*
+ Like the procedure find(), insert() begins at the root of the tree and traces a path downward. The pointer x traces the path, and the pointer parent is maintained as the parent of current.
+ The while loop causes these two pointers to move down the tree, going left or right depending on the comparison of key[pnode] with key[x], until current is set to nullptr. This nullptr
+ occupies the position where we wish to place the input item pnode. 
+*/
+template<class Key, class Value> void rbtree<Key, Value>::insert_or_assign(const key_type& key, const mapped_type& value) noexcept
+{
+    if (size == 0) { // tree is empty
+        
+        create_root(key, value);
+    
+        return; // TODO: return iterator?
+    }
+    
+    if (auto [bFound, pnode] = findNode(key, root.get()); bFound == true) {
+
+         const_cast<Node *>(pnode)->value() = value;        
+         
+         return; // TODO: Return iterator?
+
+    // else if Not found, insert. pnode is the leaf node that will be the parent of the new node.
+    } else {
+        
+       auto parent = const_cast<Node *>(pnode);
+        
+       std::unique_ptr<Node> pnew_node = std::make_unique<Node>(key, value, parent); 
+
+       if (pnew_node->key() < parent->key()) 
+           parent->left = std::move(pnew_node); 
+       else 
+           parent->right = std::move(pnew_node);
+    }
+
+    ++size;
+
+    // TODO: return iterator ??
+}
+/*
+ * We handle three possible cases:
+ * 1. If the node to remove is a leaf, we simply delete it by calling unique_ptr<Node>'s reset method. 
+ * 2. If the node to remove is an internal node, we get its in-order successor and move its pair<Key, Value> into node, and then delete the leaf node successor
+ * 3. If the node to remove has only one child, we adjust the child pointer of the parent so it will point to this child. We do this by using unqiue_ptr<Node>'s move assignment operator, which has the 
+ *    side effect of also deleting the moved node's underlying memory. We then must adjust the parent pointer of the newly 'adopted' child.
+ */
 template<class Key, class Value> void rbtree<Key, Value>::remove(Key key) noexcept
-{
-    
-}
-
-template<class Key, class Value> inline const Value& rbtree<Key, Value>::at(const Key& key) const 
 {
   const Node *pnode = findNode(key, root.get());
   
-  if (pnode == nullptr) throw std::out_of_range("Key not found in tree");
-  
-  return pnode->value();
-}
+  if (pnode == nullptr) return;
 
-template<class Key, class Value> inline Value& rbtree<Key, Value>::at(const Key& key)
-{
-  return this->at(key);
-}
+  // Get the managing unique_ptr<Node> whose underlying raw point is node? 
+  std::unique_ptr<Node>& node = const_cast<std::unique_ptr<Node>&>( get_unique_ptr(pnode) );
 
-template<class Key, class Value> const Value& rbtree<Key, Value>::operator[](const Key& key) const 
-{
-    /* 
-     * Look for key 
-     * If found, return Value.
-     * else insert default value of Value{}
-     
-     class Route { // Define this as a nested class of rbtree<>
+  --size; 
 
-         child_index index;
-         bool black_flag; // or Node *pfirstNodeToDoWhateverWith;
-     };
-     */
+  // case 1: If the key is in a leaf, simply delete the leaf. 
+  if (pnode->isLeaf()) { 
+      
+      node.reset();     
+      return;
+  }  
 
-     stack<Route> route;      // or stack<Route>  
-     Node *pnode;
+  if (pnode->left != nullptr && pnode->right != nullptr) {// case 2: The key is in an internal node.   
 
-     if (findNodeHelper(key, route, pnode) ) { // finds the node, or the leaf where it should be inserted
+      std::unique_ptr<Node>& successor = getSuccessor(pnode);
 
+      node->__vt = std::move(successor->__vt);  // move the successor's key and value into node. Do not alter node's parent or left and right children.
 
-     } else { // insert it using pnode and route.
+      successor.reset(); // safely delete leaf node successor
          
-     } 
+  }  else { 
+
+      // case 3: The key is in a node with only one child. 
+      std::unique_ptr<Node>& successor = (node->left != nullptr) ? node->left : node->right;
+
+      Node *parent = node->parent;
+            
+      node = std::move(successor);
+      
+      successor->parent = parent;
+  }  
+
+  return; 
 }
 
-template<class Key, class Value> inline Value& rbtree<Key, Value>::operator[](const Key& key)
+template<class Key, class Value> inline int rbtree<Key, Value>::height() const noexcept
 {
-  if (pnode == nullptr) {
-
-      insert(key, Value{});
-  } 
-  
-  return;
+   return height(root.get());
 }
 
+/*
+ * Returns -1 is pnode not in tree
+ * Returns: 0 for root
+ *          1 for level immediately below root
+ *          2 for level immediately below level 1
+ *          3 for level immediately below level 2
+ *          etc. 
+ */
+template<class Key, class Value> int rbtree<Key, Value>::depth(const Node *pnode) const noexcept
+{
+    if (pnode == nullptr) return -1;
+
+    int depth = 0;
+      
+    for (const Node *current = root; current != nullptr; ++depth) {
+
+      if (current->key() == pnode->key()) {
+
+          return depth;
+
+      } else if (pnode->key() < current->key()) {
+
+          current = current->left;
+
+      } else {
+
+          current = current->right;
+      }
+    }
+
+    return -1; // not found
+}
+
+template<class Key, class Value> int rbtree<Key, Value>::height(const Node* pnode) const noexcept
+{
+   if (pnode == nullptr) {
+
+       return -1;
+
+   } else {
+
+      return 1 + std::max(height(pnode->left.get()), height(pnode->right.get()));
+   }
+}
+ 
+template<class Key, class Value> bool rbtree<Key, Value>::isBalanced(const Node* pnode) const noexcept
+{
+   if (pnode == nullptr || findNode(pnode->key(), pnode)) return false; 
+       
+   int leftHeight = height(pnode->leftChild);
+
+   int rightHeight = height(pnode->rightChild);
+
+   int diff = std::abs(leftHeight - rightHeight);
+
+   return (diff == 1 || diff ==0) ? true : false; // return true is absolute value is 0 or 1.
+}
+
+// Visits each Node, testing whether it is balanced. Returns false if any node is not balanced.
+template<class Key, class Value> bool rbtree<Key, Value>::isBalanced() const noexcept
+{
+   std::stack<Node> nodes;
+
+   nodes.push(root.get());
+
+   while (!nodes.empty()) {
+
+     const Node *current = nodes.pop();
+
+     if (isBalanced(current) == false)  return false; 
+
+     if (current->rightChild != nullptr) 
+         nodes.push(current->rightChild);
+ 
+     if (current->leftChild != nullptr) 
+         nodes.push(current->leftChild);
+   }
+
+   return true; // All Nodes were balanced.
+}
+
+#endif
 #endif
